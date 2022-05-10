@@ -305,7 +305,6 @@ class Agent():
         
         # Train critics
         next_action, log_pis_next = self.actor.evaluate(next_encoded)
-        # log_pis_next has size 2, because it's action-space. What to do?
         Q_target1_next = self.critic1_target(next_encoded.to(device), next_action.to(device))
         Q_target2_next = self.critic2_target(next_encoded.to(device), next_action.to(device))
         Q_target_next = torch.min(Q_target1_next, Q_target2_next)
@@ -315,15 +314,14 @@ class Agent():
             Q_targets = rewards.cpu() + (args.gamma * (1 - dones.cpu()) * (Q_target_next.cpu() - args.alpha * log_pis_next.squeeze(0).cpu()))
         
         Q_1 = self.critic1(encoded, actions).cpu()
-        print()
-        print(Q_1.shape, Q_targets.shape)
-        print()
+        Q_1 = Q_1.repeat(1,1,2)
         critic1_loss = 0.5*F.mse_loss(Q_1, Q_targets.detach())
         self.critic1_optimizer.zero_grad()
         critic1_loss.backward()
         self.critic1_optimizer.step()
         
         Q_2 = self.critic2(encoded, actions).cpu()
+        Q_2 = Q_2.repeat(1,1,2)
         critic2_loss = 0.5*F.mse_loss(Q_2, Q_targets.detach())
         self.critic2_optimizer.zero_grad()
         critic2_loss.backward()
